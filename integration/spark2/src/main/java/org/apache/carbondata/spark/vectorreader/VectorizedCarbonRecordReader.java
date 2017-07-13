@@ -55,7 +55,7 @@ import org.apache.spark.sql.types.StructType;
  * A specialized RecordReader that reads into InternalRows or ColumnarBatches directly using the
  * carbondata column APIs and fills the data directly into columns.
  */
-class VectorizedCarbonRecordReader extends AbstractRecordReader<Object> {
+public class VectorizedCarbonRecordReader extends AbstractRecordReader<Object> {
 
   private int batchIdx = 0;
 
@@ -75,15 +75,16 @@ class VectorizedCarbonRecordReader extends AbstractRecordReader<Object> {
    */
   private static final MemoryMode DEFAULT_MEMORY_MODE = MemoryMode.OFF_HEAP;
 
-  private QueryModel queryModel;
+  protected QueryModel queryModel;
 
-  private AbstractDetailQueryResultIterator iterator;
+  protected AbstractDetailQueryResultIterator iterator;
 
-  private QueryExecutor queryExecutor;
+  protected QueryExecutor queryExecutor;
 
   public VectorizedCarbonRecordReader(QueryModel queryModel) {
     this.queryModel = queryModel;
     enableReturningBatches();
+    queryExecutor = QueryExecutorFactory.getQueryExecutor(queryModel);
   }
 
   /**
@@ -258,5 +259,7 @@ class VectorizedCarbonRecordReader extends AbstractRecordReader<Object> {
     }
     return false;
   }
+
+
 
 }

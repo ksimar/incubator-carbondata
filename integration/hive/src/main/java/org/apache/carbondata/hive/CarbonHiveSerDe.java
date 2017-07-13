@@ -16,6 +16,9 @@
  */
 package org.apache.carbondata.hive;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -24,6 +27,8 @@ import java.util.Properties;
 import javax.annotation.Nullable;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
+import org.apache.hadoop.hive.ql.exec.vector.VectorizedSerde;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -58,9 +63,11 @@ import org.apache.hadoop.io.Writable;
  * It transparently passes the object to/from the Carbon file reader/writer.
  */
 @SerDeSpec(schemaProps = { serdeConstants.LIST_COLUMNS, serdeConstants.LIST_COLUMN_TYPES })
-class CarbonHiveSerDe extends AbstractSerDe {
+public class CarbonHiveSerDe extends AbstractSerDe implements VectorizedSerde {
   private final SerDeStats stats;
   private ObjectInspector objInspector;
+  private VectorizedCarbonSerde vectorizedCarbonSerde = null;
+
 
   private enum LAST_OPERATION {
     SERIALIZE, DESERIALIZE, UNKNOWN
@@ -227,4 +234,43 @@ class CarbonHiveSerDe extends AbstractSerDe {
   @Override public ObjectInspector getObjectInspector() throws SerDeException {
     return objInspector;
   }
+
+  @Override public Writable serializeVector(VectorizedRowBatch vrg, ObjectInspector objInspector)
+      throws SerDeException {
+    if(vectorizedCarbonSerde == null)
+    {
+      vectorizedCarbonSerde = new VectorizedCarbonSerde(objInspector);
+    }
+    return vectorizedCarbonSerde.serializeVector(vrg,objInspector);
+  }
+
+  @Override
+  public void deserializeVector(Object rowBlob, int rowsInBlob, VectorizedRowBatch reuseBatch)
+      throws SerDeException {
+      // Nothing to do here
+  }
+
+  final class CarbonSerdeRow implements Writable {
+    Object realRow;
+    ObjectInspector inspector;
+
+    @Override
+    public void write(DataOutput dataOutput) throws IOException {
+      throw new UnsupportedOperationException("can't write the bundle");
+    }
+
+    @Override
+    public void readFields(DataInput dataInput) throws IOException {
+      throw new UnsupportedOperationException("can't read the bundle");
+    }
+
+    ObjectInspector getInspector() {
+      return inspector;
+    }
+
+    Object getRow() {
+      return realRow;
+    }
+  }
+
 }

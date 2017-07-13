@@ -22,7 +22,6 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -116,7 +115,7 @@ public class HiveEmbeddedServer2 {
     // also set the permissions manually since Hive doesn't do it...
     scratchDirFile.setWritable(true, false);
 
-    int random = new Random().nextInt();
+    int random = -276989393 ;//new Random().nextInt();
 
     conf.set("hive.metastore.warehouse.dir", scratchDir + "/warehouse" + random);
     conf.set("hive.metastore.metadb.dir", scratchDir + "/metastore_db" + random);
@@ -131,6 +130,9 @@ public class HiveEmbeddedServer2 {
     conf.set("hive.added.archives.path", "");
     conf.set("fs.default.name", "file:///");
     conf.set(HiveConf.ConfVars.SUBMITLOCALTASKVIACHILD.varname, "false");
+    conf.set(ConfVars.HIVE_VECTORIZATION_ENABLED.varname, "true");
+    conf.set(ConfVars.HIVE_VECTORIZATION_REDUCE_ENABLED.varname, "true");
+
 
     // clear mapred.job.tracker - Hadoop defaults to 'local' if not defined. Hive however expects
     // this to be set to 'local' - if it's not, it does a remote execution (i.e. no child JVM)
