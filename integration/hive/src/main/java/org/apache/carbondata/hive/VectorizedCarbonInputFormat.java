@@ -49,7 +49,7 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.Job;
 
 /**
- * Vectorized input format for Parquet files
+ * Vectorized input format for Carbon files
  */
 public class VectorizedCarbonInputFormat extends CarbonInputFormat<VectorizedRowBatch>
     implements VectorizedInputFormatInterface, InputFormat<NullWritable, VectorizedRowBatch>,

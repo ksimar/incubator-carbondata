@@ -1,83 +1,83 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-package org.apache.carbondata.hive;
+* Licensed to the Apache Software Foundation (ASF) under one or more
+        * contributor license agreements.  See the NOTICE file distributed with
+        * this work for additional information regarding copyright ownership.
+        * The ASF licenses this file to You under the Apache License, Version 2.0
+        * (the "License"); you may not use this file except in compliance with
+        * the License.  You may obtain a copy of the License at
+        *
+        *    http://www.apache.org/licenses/LICENSE-2.0
+        *
+        * Unless required by applicable law or agreed to in writing, software
+        * distributed under the License is distributed on an "AS IS" BASIS,
+        * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        * See the License for the specific language governing permissions and
+        * limitations under the License.
+        */
+        package org.apache.carbondata.hive;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+        import java.io.IOException;
+        import java.util.ArrayList;
+        import java.util.Arrays;
+        import java.util.List;
+        import java.util.Map;
 
-import org.apache.carbondata.core.cache.dictionary.Dictionary;
-import org.apache.carbondata.core.datastore.block.TableBlockInfo;
-import org.apache.carbondata.core.keygenerator.directdictionary.DirectDictionaryGenerator;
-import org.apache.carbondata.core.keygenerator.directdictionary.DirectDictionaryKeyGeneratorFactory;
-import org.apache.carbondata.core.metadata.datatype.DataType;
-import org.apache.carbondata.core.metadata.encoder.Encoding;
-import org.apache.carbondata.core.metadata.schema.table.column.CarbonColumn;
-import org.apache.carbondata.core.scan.executor.QueryExecutor;
-import org.apache.carbondata.core.scan.executor.QueryExecutorFactory;
-import org.apache.carbondata.core.scan.executor.exception.QueryExecutionException;
-import org.apache.carbondata.core.scan.model.QueryDimension;
-import org.apache.carbondata.core.scan.model.QueryMeasure;
-import org.apache.carbondata.core.scan.model.QueryModel;
-import org.apache.carbondata.core.scan.result.iterator.AbstractDetailQueryResultIterator;
-import org.apache.carbondata.core.scan.result.vector.CarbonColumnVector;
-import org.apache.carbondata.core.scan.result.vector.CarbonColumnarBatch;
-import org.apache.carbondata.core.stats.QueryStatistic;
-import org.apache.carbondata.core.stats.QueryStatisticsConstants;
-import org.apache.carbondata.core.stats.QueryStatisticsRecorder;
-import org.apache.carbondata.core.util.CarbonUtil;
-import org.apache.carbondata.spark.util.CarbonScalaUtil;
-import org.apache.carbondata.spark.vectorreader.ColumnarVectorWrapper;
+        import org.apache.carbondata.core.cache.dictionary.Dictionary;
+        import org.apache.carbondata.core.datastore.block.TableBlockInfo;
+        import org.apache.carbondata.core.keygenerator.directdictionary.DirectDictionaryGenerator;
+        import org.apache.carbondata.core.keygenerator.directdictionary.DirectDictionaryKeyGeneratorFactory;
+        import org.apache.carbondata.core.metadata.datatype.DataType;
+        import org.apache.carbondata.core.metadata.encoder.Encoding;
+        import org.apache.carbondata.core.metadata.schema.table.column.CarbonColumn;
+        import org.apache.carbondata.core.scan.executor.QueryExecutor;
+        import org.apache.carbondata.core.scan.executor.QueryExecutorFactory;
+        import org.apache.carbondata.core.scan.executor.exception.QueryExecutionException;
+        import org.apache.carbondata.core.scan.model.QueryDimension;
+        import org.apache.carbondata.core.scan.model.QueryMeasure;
+        import org.apache.carbondata.core.scan.model.QueryModel;
+        import org.apache.carbondata.core.scan.result.iterator.AbstractDetailQueryResultIterator;
+        import org.apache.carbondata.core.scan.result.vector.CarbonColumnVector;
+        import org.apache.carbondata.core.scan.result.vector.CarbonColumnarBatch;
+        import org.apache.carbondata.core.stats.QueryStatistic;
+        import org.apache.carbondata.core.stats.QueryStatisticsConstants;
+        import org.apache.carbondata.core.stats.QueryStatisticsRecorder;
+        import org.apache.carbondata.core.util.CarbonUtil;
+        import org.apache.carbondata.spark.util.CarbonScalaUtil;
+        import org.apache.carbondata.spark.vectorreader.ColumnarVectorWrapper;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
-import org.apache.hadoop.hive.ql.exec.vector.DecimalColumnVector;
-import org.apache.hadoop.hive.ql.exec.vector.DoubleColumnVector;
-import org.apache.hadoop.hive.ql.exec.vector.LongColumnVector;
-import org.apache.hadoop.hive.ql.exec.vector.VectorColumnAssign;
-import org.apache.hadoop.hive.ql.exec.vector.VectorColumnAssignFactory;
-import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
-import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatchCtx;
-import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.serde.serdeConstants;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
-import org.apache.hadoop.hive.serde2.typeinfo.DecimalTypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
-import org.apache.hadoop.io.ArrayWritable;
-import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.FileSplit;
-import org.apache.hadoop.mapred.InputSplit;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.RecordReader;
-import org.apache.spark.memory.MemoryMode;
-import org.apache.spark.sql.execution.vectorized.ColumnarBatch;
-import org.apache.spark.sql.types.DecimalType;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
+        import org.apache.hadoop.conf.Configuration;
+        import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
+        import org.apache.hadoop.hive.ql.exec.vector.DecimalColumnVector;
+        import org.apache.hadoop.hive.ql.exec.vector.DoubleColumnVector;
+        import org.apache.hadoop.hive.ql.exec.vector.LongColumnVector;
+        import org.apache.hadoop.hive.ql.exec.vector.VectorColumnAssign;
+        import org.apache.hadoop.hive.ql.exec.vector.VectorColumnAssignFactory;
+        import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
+        import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatchCtx;
+        import org.apache.hadoop.hive.ql.metadata.HiveException;
+        import org.apache.hadoop.hive.serde.serdeConstants;
+        import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+        import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
+        import org.apache.hadoop.hive.serde2.typeinfo.DecimalTypeInfo;
+        import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
+        import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+        import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
+        import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
+        import org.apache.hadoop.io.ArrayWritable;
+        import org.apache.hadoop.io.NullWritable;
+        import org.apache.hadoop.io.Writable;
+        import org.apache.hadoop.mapred.FileSplit;
+        import org.apache.hadoop.mapred.InputSplit;
+        import org.apache.hadoop.mapred.JobConf;
+        import org.apache.hadoop.mapred.RecordReader;
+        import org.apache.spark.memory.MemoryMode;
+        import org.apache.spark.sql.execution.vectorized.ColumnarBatch;
+        import org.apache.spark.sql.types.DecimalType;
+        import org.apache.spark.sql.types.StructField;
+        import org.apache.spark.sql.types.StructType;
 
 public class CarbonHiveVectorizedReader
-    implements RecordReader<NullWritable, VectorizedRowBatch> {
+        implements RecordReader<NullWritable, VectorizedRowBatch> {
 
   private ArrayWritable valueObj ;
   private CarbonObjectInspector objInspector;
@@ -118,7 +118,7 @@ public class CarbonHiveVectorizedReader
 
 
   public CarbonHiveVectorizedReader(QueryModel queryModel, InputSplit inputSplit, JobConf jobConf)
-      throws IOException, InterruptedException, UnsupportedOperationException {
+          throws IOException, InterruptedException, UnsupportedOperationException {
     initialize(inputSplit, jobConf, queryModel);
     try {
       rbCtx = new VectorizedRowBatchCtx();
@@ -130,7 +130,7 @@ public class CarbonHiveVectorizedReader
 
 
   private void initialize(InputSplit inputSplit, Configuration conf, QueryModel queryModel)
-      throws IOException, InterruptedException, UnsupportedOperationException {
+          throws IOException, InterruptedException, UnsupportedOperationException {
     // The input split can contain single HDFS block or multiple blocks, so firstly get all the
     // blocks and then set them in the query model.
     List<CarbonHiveInputSplit> splitList;
@@ -202,10 +202,10 @@ public class CarbonHiveVectorizedReader
       if (nextKeyValue()) {
         Object obj = getCurrentValue();
         while (outputBatch.size < maxSize) {
-         // if (false == internalReader.next(internalKey, internalValues)) {
+          // if (false == internalReader.next(internalKey, internalValues)) {
           //  outputBatch.endOfFile = true;
           //  break;
-         // }
+          // }
           Writable[] writables = null; //internalValues.get();
 
           if (null == assigners) {
@@ -273,7 +273,7 @@ public class CarbonHiveVectorizedReader
     }
   }
 
-   public boolean nextKeyValue() throws IOException, InterruptedException {
+  public boolean nextKeyValue() throws IOException, InterruptedException {
     resultBatch();
 
     if (returnColumnarBatch) return nextBatch();
@@ -285,7 +285,7 @@ public class CarbonHiveVectorizedReader
     return true;
   }
 
-   public Object getCurrentValue() throws IOException, InterruptedException {
+  public Object getCurrentValue() throws IOException, InterruptedException {
     if (returnColumnarBatch) {
       rowCount += columnarBatch.count();
       return columnarBatch;
@@ -294,7 +294,7 @@ public class CarbonHiveVectorizedReader
     return columnarBatch.projectedColumns;
   }
 
-   public Void getCurrentKey() throws IOException, InterruptedException {
+  public Void getCurrentKey() throws IOException, InterruptedException {
     return null;
   }
 
@@ -313,20 +313,20 @@ public class CarbonHiveVectorizedReader
       QueryDimension dim = queryDimension.get(i);
       if (dim.getDimension().hasEncoding(Encoding.DIRECT_DICTIONARY)) {
         DirectDictionaryGenerator generator = DirectDictionaryKeyGeneratorFactory
-            .getDirectDictionaryGenerator(dim.getDimension().getDataType());
+                .getDirectDictionaryGenerator(dim.getDimension().getDataType());
         fields[dim.getQueryOrder()] = new StructField(dim.getColumnName(),
-            CarbonScalaUtil.convertCarbonToSparkDataType(generator.getReturnType()), true, null);
+                CarbonScalaUtil.convertCarbonToSparkDataType(generator.getReturnType()), true, null);
       } else if (!dim.getDimension().hasEncoding(Encoding.DICTIONARY)) {
         fields[dim.getQueryOrder()] = new StructField(dim.getColumnName(),
-            CarbonScalaUtil.convertCarbonToSparkDataType(dim.getDimension().getDataType()), true,
-            null);
+                CarbonScalaUtil.convertCarbonToSparkDataType(dim.getDimension().getDataType()), true,
+                null);
       } else if (dim.getDimension().isComplex()) {
         fields[dim.getQueryOrder()] = new StructField(dim.getColumnName(),
-            CarbonScalaUtil.convertCarbonToSparkDataType(dim.getDimension().getDataType()), true,
-            null);
+                CarbonScalaUtil.convertCarbonToSparkDataType(dim.getDimension().getDataType()), true,
+                null);
       } else {
         fields[dim.getQueryOrder()] = new StructField(dim.getColumnName(),
-            CarbonScalaUtil.convertCarbonToSparkDataType(DataType.INT), true, null);
+                CarbonScalaUtil.convertCarbonToSparkDataType(DataType.INT), true, null);
       }
     }
 
@@ -337,17 +337,17 @@ public class CarbonHiveVectorizedReader
         case INT:
         case LONG:
           fields[msr.getQueryOrder()] = new StructField(msr.getColumnName(),
-              CarbonScalaUtil.convertCarbonToSparkDataType(msr.getMeasure().getDataType()), true,
-              null);
+                  CarbonScalaUtil.convertCarbonToSparkDataType(msr.getMeasure().getDataType()), true,
+                  null);
           break;
         case DECIMAL:
           fields[msr.getQueryOrder()] = new StructField(msr.getColumnName(),
-              new DecimalType(msr.getMeasure().getPrecision(),
-                  msr.getMeasure().getScale()), true, null);
+                  new DecimalType(msr.getMeasure().getPrecision(),
+                          msr.getMeasure().getScale()), true, null);
           break;
         default:
           fields[msr.getQueryOrder()] = new StructField(msr.getColumnName(),
-              CarbonScalaUtil.convertCarbonToSparkDataType(DataType.DOUBLE), true, null);
+                  CarbonScalaUtil.convertCarbonToSparkDataType(DataType.DOUBLE), true, null);
       }
     }
 
@@ -422,10 +422,28 @@ public class CarbonHiveVectorizedReader
     final List<? extends org.apache.hadoop.hive.serde2.objectinspector.StructField> fieldRefs = carbonObjectInspector.getAllStructFieldRefs();
     VectorizedRowBatch result = new VectorizedRowBatch(fieldRefs.size());
     for (int j = 0; j < fieldRefs.size(); j++) {
+      switch (fieldRefs.get(j).getFieldObjectInspector().getTypeName()) {
+        case "int" :
+        case "long" :
+        case "short":
+        case "date":
+        case "timestamp":
+          result.cols[j] = new LongColumnVector(VectorizedRowBatch.DEFAULT_SIZE);
+          break;
+        case "float":
+        case "double":
+          result.cols[j] = new DoubleColumnVector(VectorizedRowBatch.DEFAULT_SIZE);
+          break;
+        case "string":
+        case "char":
+          result.cols[j] = new BytesColumnVector(VectorizedRowBatch.DEFAULT_SIZE);
+          break;
+
+      }
       // If the column is included in the include list or if the column is a
       // partition column then create the column vector. Also note that partition columns are not
       // in the included list.
-      ObjectInspector foi = fieldRefs.get(j).getFieldObjectInspector();
+     /* ObjectInspector foi = fieldRefs.get(j).getFieldObjectInspector();
         switch (foi.getCategory()) {
           case PRIMITIVE: {
             PrimitiveObjectInspector poi = (PrimitiveObjectInspector) foi;
@@ -473,7 +491,7 @@ public class CarbonHiveVectorizedReader
                 + foi.getCategory());
           default:
             throw new HiveException("Unknown ObjectInspector category!");
-        }
+        }*/
 
     }
     result.numCols = fieldRefs.size();
